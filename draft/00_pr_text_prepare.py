@@ -7,9 +7,9 @@ Created on Thu Feb 14 14:13:33 2019
 
 @author: alexey
 """
-import os, re, pickle
+import os
 import pandas as pd
-from IterableTexstsHandling import IndexingTextsList
+from functions import text_coll_lemmatizer, data_for_learning_selection, texts_prepare
 
 model_rout = r'./models'
 data_rout = r'./data/'
@@ -18,26 +18,16 @@ dict_rout = r'./dicts'
 
 ds = pd.DataFrame(pd.read_csv(os.path.join(data_rout, 'txts_lbls.csv')))
 
-class_q = pd.DataFrame(ds['txt'].groupby(ds['lbs']).count())
-class_q.reset_index(inplace = True)
-class_for_learning = class_q[class_q['txt'] >=100]
-
-num_classes = class_for_learning.shape[0]
-ds_lbs_for_learn = ds.loc[ds['lbs'].isin(list(class_for_learning['lbs']))]
-
-lbs = list(ds_lbs_for_learn['lbs'])
-txts = list(ds_lbs_for_learn['txt'])
-
 #предобработка текстов:
 #заменим ссылки
-txts_ = [re.sub(r'www\.\w+\.\w+|\w+\.\w+\.рф', 'ссылканасайт ', tx) for tx in txts]
-txts_ = [re.sub('[aA-zZ]', ' ', tx) for tx in txts_]
-txts_ = [re.sub(r'[^\w\s]', '', tx) for tx in txts_]
-txts_ = [re.sub(r'[\d+]', '', tx) for tx in txts_]
-txts_ = [re.sub(r'\s+', ' ', tx) for tx in txts_]
+txts, lbls = zip(*data_for_learning_selection(ds, each_class_examples=100))
 
-txt_inx = IndexingTextsList(enumerate(txts_))
-txt_inx.lemmatization(inplace=True, lemm_type=1)
+patterns = [(r'www\.\w+\.\w+|\w+\.\w+\.рф', 'ссылканасайт '), ('[aA-zZ]', ' '),
+            (r'[^\w\s]', ''), (r'[\d+]', ''), (r'\s+', ' ')]
 
-with open(os.path.join(data_rout, 'lebled_texts.pickle'), 'wb') as f:
-    pickle.dump(list(zip(txt_inx.lemm_texts, lbs)), f)
+txts_ = texts_prepare(txts, patterns)
+
+#лемматизация текстов
+lemm_txts = text_coll_lemmatizer(txts_)
+print(lemm_txts[:10])
+

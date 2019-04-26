@@ -8,7 +8,7 @@ Created on Thu Feb 14 15:47:41 2019
 
 import os, pickle
 from gensim import models, logging
-
+from random import shuffle
 
 model_rout = r'./models'
 data_rout = r'./data/'
@@ -22,6 +22,31 @@ txts = [i[0] for i in data]
 #создание word2vec модели
 w2v_model = models.Word2Vec([tx.split() for tx in txts], min_count=30, iter=25, size=150, window=5,  workers=7)
 
+
+
+#подготовка текстов
+'''нужно тексты с определенным тегом (например, с 22) объявить текстом с одним тегом (с 1) и удалить все случаи, где эти тексты встречаются с другими тегами (с 0)'''
+#выбор одного тега для работы с ним (остальные тексты считаются классом 0) с балансировкой или без
+#применимо к классификации "один ко многим"
+def tag_handling(labled_txts_list, teg_num, balance = False):
+    #отберем тексты, с заданным тегом и тексты без этого тега
+    txts_with_tag = [x[0] for x in labled_txts_list if x[1] == teg_num]
+    txts_without_tag = [x[0] for x in labled_txts_list if x[1] != teg_num]
+    #сбалансируем количество текстов с тегом и без    
+    if balance == True:
+        shuffle(txts_without_tag)
+        return txts_with_tag, txts_without_tag[:len(txts_with_tag)]
+    else:
+        return txts_with_tag, txts_without_tag
+
+
+txs0, txs1 = tag_handling(data, 22, balance = True)
+
+print(txs0[:5])
+print(txs1[:5])
+print(len(txs0), len(txs1))
+
+'''
 work_vocab = [w for w in w2v_model.wv.vocab]
 w2v_model.save(os.path.join(model_rout, 'w2v_model_abc_tech_20190214'))
 
@@ -32,17 +57,13 @@ lemm_texts_true_words = [[w for w in sen.split() if w in work_vocab] for sen in 
 w2v = models.Word2Vec.load(os.path.join(model_rout, 'w2v_model_abc_tech_20190214'))
 #w2v.wv.most_similar('ссылканасайт')
 
-
-#подготовка текстов
-'''нужно тексты с определенным тегом (например, с 22) объявить текстом с одним тегом (с 1) и удалить все случаи, где эти тексты встречаются с другими тегами (с 0)'''
+#нужно тексты с определенным тегом (например, с 22) объявить текстом с одним тегом (с 1) и удалить все случаи, где эти тексты встречаются с другими тегами (с 0)
 #для 22 лейбла
 tx_lbs = list(zip(lemm_texts_true_words, lbls))
 txt_22 = [i[0] for i in tx_lbs if i[1] == 22]
 txt_no22 = [i[0] for i in tx_lbs if i[1] != 22]
 txt_no22 = [i for i in txt_no22 if i not in txt_22]
 
-for i in txt_22:
-    print(i)
 
 
 #создание моделей на основании нейронных сетей:
@@ -56,10 +77,6 @@ from keras.preprocessing.text import Tokenizer
 from keras.layers.embeddings import Embedding
 from keras.layers.core import SpatialDropout1D
 from keras import regularizers
-
-
-
-
 
 
 top_words = 5000
@@ -158,5 +175,4 @@ plt.ylabel('Loss')
 plt.xlabel('Epoch')
 plt.legend(['Train', 'Test'], loc='upper left')
 plt.show()
-
-
+'''
