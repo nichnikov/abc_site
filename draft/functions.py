@@ -21,16 +21,19 @@ def texts_lemm_mystem(text_for_lemmatization):
     mystem = Mystem()
     return ' '.join(mystem.lemmatize(text_for_lemmatization))
 
+#замена паттернов (формат кортежа)
+def texts_change_patterns(txts, patterns):
+    for t, p in patterns:
+        txts = [re.sub(t, p, tx) for tx in txts]   
+    return txts
+
+patterns = [(r'\|','_'), (r'[^\w\_\s]',''), (r'\d+',''), (r'\b\w{0,2}\b', '')]
+
 def txt_handling(text, lemm_type = 1):
     if lemm_type == 0:
-        mask = r'\b\w{0,1}\b'
-        shortword = re.compile(mask)
-        txt = re.sub('\|','_', text)
-        txt = shortword.sub('', txt)
-        txt = re.sub('[^\w\_\s]','', txt)
-        txt = re.sub('\d+','', txt)
+        txt = texts_change_patterns(text, patterns)
     elif lemm_type == 1:
-        txt = re.findall('[аА-яЯ]{1,}', text)
+        txt = re.findall('[аА-яЯ]{3,}', text)
         txt = ' '.join(txt)
     return txt.lower()
 
@@ -51,7 +54,6 @@ def text_coll_lemmatizer (texts_list, lemm_type = 1):
     result = [txt_handling(tx, lemm_type) for tx in lemm_txts.split('\n')]
     del result[-1:]
     return result
-
 
 def SliceArray(src:[], length:int=1, stride:int=1) -> [[]]:
     return [src[i:i+length] for i in range(0, len(src), stride)]
@@ -74,12 +76,6 @@ def data_for_learning_selection(ds, each_class_examples=100):
     
     return list(zip(list(ds_lbs_for_learn['txt']), list(ds_lbs_for_learn['lbs'])))
 
-#замена паттернов (формат кортежа)
-def texts_prepare(txts, patterns):
-    for t, p in patterns:
-        txts = [re.sub(t, p, tx) for tx in txts]   
-    return txts
-
 #выбор одного тега для работы с ним (остальные тексты считаются классом 0) с балансировкой или без
 #применимо к классификации "один ко многим"
 def tag_handling(labled_txts_list, teg_num, balance = False):
@@ -92,4 +88,3 @@ def tag_handling(labled_txts_list, teg_num, balance = False):
         return txts_with_tag, txts_without_tag[:len(txts_with_tag)]
     else:
         return txts_with_tag, txts_without_tag
-
